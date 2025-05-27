@@ -19,7 +19,7 @@ interface GameConstants {
     int SCREEN_HEIGHT = 600;
     int TILE_SIZE = 25;
     int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / (TILE_SIZE * TILE_SIZE);
-    int GAME_SPEED = 12;
+    int GAME_SPEED = 120;
     String HIGH_SCORE_FILE = "snake_highscore.txt";
     String GAME_TITLE = "Snake Game";
 }
