@@ -12,16 +12,14 @@ public class SnakeGame {
     }
 }
 
-enum Direction {
-    UP, DOWN, LEFT, RIGHT
-}
+// ✅ SECTION: Game Constants & Interfaces
 
 interface GameConstants {
     int SCREEN_WIDTH = 600;
     int SCREEN_HEIGHT = 600;
     int TILE_SIZE = 25;
     int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / (TILE_SIZE * TILE_SIZE);
-    int GAME_SPEED = 150;
+    int GAME_SPEED = 12;
     String HIGH_SCORE_FILE = "snake_highscore.txt";
     String GAME_TITLE = "Snake Game";
 }
@@ -29,6 +27,8 @@ interface GameConstants {
 interface DrawableEntity {
     void draw(Graphics g);
 }
+
+// ✅ SECTION: File Handling (High Score)
 
 class HighScoreManager implements GameConstants {
     public static int loadHighScore() {
@@ -57,11 +57,19 @@ class HighScoreManager implements GameConstants {
     }
 }
 
+// ✅ SECTION: Enum & Custom Exception
+
+enum Direction {
+    UP, DOWN, LEFT, RIGHT
+}
+
 class GameLogicException extends RuntimeException {
     public GameLogicException(String message) {
         super(message);
     }
 }
+
+// ✅ SECTION: Game Window
 
 class GameFrame extends JFrame implements GameConstants {
     public GameFrame() {
@@ -74,6 +82,8 @@ class GameFrame extends JFrame implements GameConstants {
         this.setLocationRelativeTo(null);
     }
 }
+
+// ✅ SECTION: Game Panel (Core Logic)
 
 class GamePanel extends JPanel implements ActionListener, KeyListener, GameConstants {
     private Timer timer;
@@ -170,7 +180,7 @@ class GamePanel extends JPanel implements ActionListener, KeyListener, GameConst
 
     private void checkCollisions() {
         Point head = snake.getHead();
-        List<Point> snakeBody = snake.getBody(); // Get the body once for efficiency
+        List<Point> snakeBody = snake.getBody();
 
         for (int i = 1; i < snakeBody.size(); i++) {
             if (head.equals(snakeBody.get(i))) {
@@ -216,16 +226,20 @@ class GamePanel extends JPanel implements ActionListener, KeyListener, GameConst
     public void keyReleased(KeyEvent e) {}
 }
 
+// ✅ SECTION: Snake Mechanics
+
 class Snake implements DrawableEntity, GameConstants {
-    private LinkedList<Point> body; // Changed to LinkedList
+    private LinkedList<Point> body;
     private Direction direction;
+    private Direction nextDirection;
     private final Color headColor = new Color(0, 220, 0);
     private final Color bodyColor1 = new Color(0, 180, 0);
     private final Color bodyColor2 = new Color(0, 150, 0);
 
     public Snake() {
-        this.body = new LinkedList<>(); // Changed to LinkedList
+        this.body = new LinkedList<>();
         this.direction = Direction.RIGHT;
+        this.nextDirection = Direction.RIGHT;
         initializeSnake();
     }
 
@@ -239,7 +253,8 @@ class Snake implements DrawableEntity, GameConstants {
     }
 
     public void move() {
-        Point currentHead = body.getFirst(); // Use getFirst() for LinkedList
+        direction = nextDirection;
+        Point currentHead = body.getFirst();
         Point newHead = new Point(currentHead);
 
         switch (direction) {
@@ -248,21 +263,21 @@ class Snake implements DrawableEntity, GameConstants {
             case LEFT:  newHead.x -= TILE_SIZE; break;
             case RIGHT: newHead.x += TILE_SIZE; break;
         }
-        body.addFirst(newHead); // Use addFirst() for LinkedList
-        body.removeLast();      // Use removeLast() for LinkedList
+        body.addFirst(newHead);
+        body.removeLast();
     }
 
     public void grow() {
-        Point tail = body.getLast(); // Use getLast() for LinkedList
-        body.addLast(new Point(tail.x, tail.y)); // Add to the end for growth
+        Point tail = body.getLast();
+        body.addLast(new Point(tail.x, tail.y));
     }
 
     @Override
     public void draw(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
         int i = 0;
-        for (Point segment : body) { // Iterate through LinkedList
-            if (i == 0) { // Head
+        for (Point segment : body) {
+            if (i == 0) {
                 g2d.setColor(headColor);
                 g2d.fillRoundRect(segment.x, segment.y, TILE_SIZE, TILE_SIZE, 15, 15);
                 g2d.setColor(Color.BLACK);
@@ -279,13 +294,12 @@ class Snake implements DrawableEntity, GameConstants {
                 } else if (direction == Direction.LEFT) {
                     g2d.fillOval(segment.x + eyeOffset1, segment.y + eyeOffset1, eyeSize, eyeSize);
                     g2d.fillOval(segment.x + eyeOffset1, segment.y + eyeOffset2, eyeSize, eyeSize);
-                } else { // RIGHT
-                     g2d.fillOval(segment.x + eyeOffset2, segment.y + eyeOffset1, eyeSize, eyeSize);
-                     g2d.fillOval(segment.x + eyeOffset2, segment.y + eyeOffset2, eyeSize, eyeSize);
+                } else {
+                    g2d.fillOval(segment.x + eyeOffset2, segment.y + eyeOffset1, eyeSize, eyeSize);
+                    g2d.fillOval(segment.x + eyeOffset2, segment.y + eyeOffset2, eyeSize, eyeSize);
                 }
-            } else { // Body
-                if (i % 2 == 0) g2d.setColor(bodyColor2);
-                else g2d.setColor(bodyColor1);
+            } else {
+                g2d.setColor(i % 2 == 0 ? bodyColor2 : bodyColor1);
                 g2d.fillRoundRect(segment.x, segment.y, TILE_SIZE, TILE_SIZE, 10, 10);
                 g2d.setColor(headColor.darker());
                 g2d.drawRoundRect(segment.x, segment.y, TILE_SIZE, TILE_SIZE, 10, 10);
@@ -294,7 +308,7 @@ class Snake implements DrawableEntity, GameConstants {
         }
     }
 
-    public List<Point> getBody() { // Return List interface
+    public List<Point> getBody() {
         return body;
     }
 
@@ -302,24 +316,26 @@ class Snake implements DrawableEntity, GameConstants {
         if (body.isEmpty()) {
             throw new GameLogicException("Snake body is empty, cannot get head.");
         }
-        return body.getFirst(); // Use getFirst()
+        return body.getFirst();
     }
 
     public Direction getDirection() {
         return direction;
     }
 
-    public void setDirection(int keyCode) { // Changed to accept keyCode directly
-        Direction newDirection = this.direction;
+    public void setDirection(int keyCode) {
+        Direction proposed = this.direction;
         switch (keyCode) {
-            case KeyEvent.VK_LEFT:  if (this.direction != Direction.RIGHT) newDirection = Direction.LEFT;  break;
-            case KeyEvent.VK_RIGHT: if (this.direction != Direction.LEFT)  newDirection = Direction.RIGHT; break;
-            case KeyEvent.VK_UP:    if (this.direction != Direction.DOWN)  newDirection = Direction.UP;    break;
-            case KeyEvent.VK_DOWN:  if (this.direction != Direction.UP)    newDirection = Direction.DOWN;  break;
+            case KeyEvent.VK_LEFT:  if (this.direction != Direction.RIGHT) proposed = Direction.LEFT;  break;
+            case KeyEvent.VK_RIGHT: if (this.direction != Direction.LEFT)  proposed = Direction.RIGHT; break;
+            case KeyEvent.VK_UP:    if (this.direction != Direction.DOWN)  proposed = Direction.UP;    break;
+            case KeyEvent.VK_DOWN:  if (this.direction != Direction.UP)    proposed = Direction.DOWN;  break;
         }
-        this.direction = newDirection;
+        this.nextDirection = proposed;
     }
 }
+
+// ✅ SECTION: Food
 
 class Food implements DrawableEntity, GameConstants {
     private int x;
@@ -332,7 +348,7 @@ class Food implements DrawableEntity, GameConstants {
         this.random = new Random();
     }
 
-    public void spawn(List<Point> snakeBody) { // Accepts List interface
+    public void spawn(List<Point> snakeBody) {
         boolean onSnake;
         int attempts = 0;
         int maxAttempts = GAME_UNITS + 10;
