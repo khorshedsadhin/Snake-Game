@@ -312,7 +312,7 @@ class Snake implements DrawableEntity, GameConstants {
         return body;
     }
 
-    public Point getHead() {
+    public Point getHead() throws GameLogicException {
         if (body.isEmpty()) {
             throw new GameLogicException("Snake body is empty, cannot get head.");
         }
