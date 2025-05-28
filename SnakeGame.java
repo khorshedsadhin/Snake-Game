@@ -163,32 +163,41 @@ class GamePanel extends JPanel implements ActionListener, KeyListener, GameConst
     }
 
     private void moveSnake() {
-        snake.move();
+        try {
+            snake.move();
+        } catch (GameLogicException e) {
+            System.err.println(e.getMessage());
+            gameOver = true;
+            running = false;
+            timer.stop();
+        }
     }
 
     private void checkFoodConsumption() {
-        if (snake.getHead().equals(new Point(food.getX(), food.getY()))) {
-            snake.grow();
-            score++;
-            if (score > highScore) {
-                highScore = score;
-                HighScoreManager.saveHighScore(highScore);
+        try {
+            if (snake.getHead().equals(new Point(food.getX(), food.getY()))) {
+                snake.grow();
+                score++;
+                if (score > highScore) {
+                    highScore = score;
+                    HighScoreManager.saveHighScore(highScore);
+                }
+                food.spawn(snake.getBody());
             }
-            food.spawn(snake.getBody());
+        } catch (GameLogicException e) {
+            System.err.println("Error while checking food consumption: " + e.getMessage());
         }
     }
 
     private void checkCollisions() {
-        Point head = snake.getHead();
-        List<Point> snakeBody = snake.getBody();
-
-        for (int i = 1; i < snakeBody.size(); i++) {
-            if (head.equals(snakeBody.get(i))) {
-                gameOver = true;
-                break;
-            }
+        try {
+            snake.checkSelfCollision();
+        } catch (GameLogicException e) {
+            System.err.println(e.getMessage());
+            gameOver = true;
         }
 
+        Point head = snake.getHead();
         if (head.x < 0 || head.x >= SCREEN_WIDTH || head.y < 0 || head.y >= SCREEN_HEIGHT) {
             gameOver = true;
         }
@@ -213,10 +222,8 @@ class GamePanel extends JPanel implements ActionListener, KeyListener, GameConst
     public void keyPressed(KeyEvent e) {
         if (!gameOver && running) {
             snake.setDirection(e.getKeyCode());
-        } else if (gameOver) {
-            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                startGame();
-            }
+        } else if (gameOver && e.getKeyCode() == KeyEvent.VK_ENTER) {
+            startGame();
         }
     }
 
@@ -252,7 +259,14 @@ class Snake implements DrawableEntity, GameConstants {
         body.add(new Point(startX - 2 * TILE_SIZE, startY));
     }
 
-    public void move() {
+    private void validateBody() throws GameLogicException {
+        if (body == null || body.size() < 1) {
+            throw new GameLogicException("Snake body is in an invalid state.");
+        }
+    }
+
+    public void move() throws GameLogicException {
+        validateBody();
         direction = nextDirection;
         Point currentHead = body.getFirst();
         Point newHead = new Point(currentHead);
@@ -267,9 +281,19 @@ class Snake implements DrawableEntity, GameConstants {
         body.removeLast();
     }
 
-    public void grow() {
+    public void grow() throws GameLogicException {
+        validateBody();
         Point tail = body.getLast();
         body.addLast(new Point(tail.x, tail.y));
+    }
+
+    public void checkSelfCollision() throws GameLogicException {
+        Point head = getHead();
+        for (int i = 1; i < body.size(); i++) {
+            if (head.equals(body.get(i))) {
+                throw new GameLogicException("Snake collided with itself.");
+            }
+        }
     }
 
     @Override
